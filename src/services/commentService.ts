@@ -1,6 +1,6 @@
 import type { Comment } from '../types/Comment';
 
-const API_URL = "https://jsonplaceholder.typicode.com/comments";
+const API_URL = import.meta.env.VITE_COMMENT_API_URL;
 
 export async function getComments(
   signal?: AbortSignal,
