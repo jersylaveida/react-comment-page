@@ -1,35 +1,27 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 
 import './App.css';
 import { CommentCard } from './components/CommentCard';
+import { Pagination } from './components/Pagination';
 import { getComments } from './services/commentService';
 
+const COMMENTS_PER_PAGE = 50;
+
 function App() {
-  const [comments, setComments] = useState<
-    Awaited<ReturnType<typeof getComments>>
-  >([]);
+  const [page, setPage] = useState(1);
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const { data: comments = [], isLoading, isError, error } = useQuery({
+    queryKey: ['comments'],
+    queryFn: ({ signal }) => getComments(signal),
+  });
 
-  async function loadComments() {
-    setIsLoading(true);
-    setError('');
+  const totalPages = Math.max(1, Math.ceil(comments.length / COMMENTS_PER_PAGE));
+  const startIndex = (page - 1) * COMMENTS_PER_PAGE;
+  const visibleComments = comments.slice(startIndex, startIndex + COMMENTS_PER_PAGE);
 
-    try {
-      const data = await getComments();
-
-      setComments(data);
-    } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : 'Unable to load the comments.',
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }
+  const startItem = comments.length === 0 ? 0 : startIndex + 1;
+  const endItem = Math.min(page * COMMENTS_PER_PAGE, comments.length);
 
   return (
     <>
@@ -50,53 +42,51 @@ function App() {
           {comments.length > 0 && (
             <span className="comment-count">
               {comments.length}{' '}
-              {comments.length === 1
-                ? 'comment'
-                : 'comments'}
+              {comments.length === 1 ? 'comment' : 'comments'}
             </span>
           )}
         </div>
 
-        {comments.length === 0 && !isLoading && !error && (
-          <button
-            type="button"
-            onClick={loadComments}
-          >
-            Load comments
-          </button>
-        )}
-
-        {isLoading && (
-          <div className="loading-state">
-            Loading comments...
-          </div>
-        )}
-
-        {error && (
+        {isLoading ? (
+          <div className="loading-state">Loading comments...</div>
+        ) : isError ? (
           <div className="error-message" role="alert">
-            <p>{error}</p>
-
-            <button
-              type="button"
-              onClick={loadComments}
-            >
-              Try again
-            </button>
+            {error instanceof Error
+              ? error.message
+              : 'Unable to load the comments.'}
           </div>
-        )}
+        ) : (
+          <>
+            <div className="comments-toolbar">
+              <span className="comments-toolbar__info">
+                Showing {startItem}-{endItem} of {comments.length} comments
+              </span>
+              {totalPages > 1 && (
+                <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+              )}
+            </div>
 
-        {!isLoading && !error && comments.length > 0 && (
-          <section
-            className="comments-list"
-            aria-label="Comments list"
-          >
-            {comments.map((comment) => (
-              <CommentCard
-                key={comment.id}
-                comment={comment}
-              />
-            ))}
-          </section>
+            <section
+              className="comments-list"
+              aria-label="Comments list"
+            >
+              {visibleComments.map((comment) => (
+                <CommentCard
+                  key={comment.id}
+                  comment={comment}
+                />
+              ))}
+            </section>
+
+            <div className="comments-toolbar">
+              <span className="comments-toolbar__info">
+                Showing {startItem}-{endItem} of {comments.length} comments
+              </span>
+              {totalPages > 1 && (
+                <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+              )}
+            </div>
+          </>
         )}
       </main>
     </>
