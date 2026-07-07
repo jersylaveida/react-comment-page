@@ -12,7 +12,7 @@ const rootElement =
 
 if (!rootElement) {
   throw new Error(
-    'Elemento root não encontrado.',
+    'Root element not found.',
   );
 }
 

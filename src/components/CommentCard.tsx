@@ -11,11 +11,7 @@ export function CommentCard({
         <article className="comment-card">
             <div className="comment-card__content">
                 <h2>{comment.name}</h2>
-
-                <a href={`mailto:${comment.email}`}>
-                    {comment.email}
-                </a>
-
+                <p>{comment.email}</p>
                 <p>{comment.body}</p>
             </div>
 
