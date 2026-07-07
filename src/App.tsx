@@ -1,5 +1,9 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import {
+  keepPreviousData,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 
 import './App.css';
 import { CommentCard } from './components/CommentCard';
@@ -7,25 +11,43 @@ import { Pagination } from './components/Pagination';
 import { getComments } from './services/commentService';
 
 const COMMENTS_PER_PAGE = 50;
-const TOTAL_COMMENTS = 500;
 
 function App() {
   const [page, setPage] = useState(1);
+  const queryClient = useQueryClient();
 
   const {
-    data: comments = [],
+    data,
     isLoading,
     isError,
     error,
   } = useQuery({
-    queryKey: ['comments', page],
+    queryKey: ['comments', page, COMMENTS_PER_PAGE],
     queryFn: ({ signal }) =>
       getComments(page, COMMENTS_PER_PAGE, signal),
+    placeholderData: keepPreviousData,
   });
 
-  const totalPages = Math.ceil(
-    TOTAL_COMMENTS / COMMENTS_PER_PAGE,
-  );
+  const comments = data?.comments ?? [];
+  const totalComments = data?.total ?? 0;
+
+  const totalPages = Math.max(1, Math.ceil(
+    totalComments / COMMENTS_PER_PAGE,
+  ));
+
+  useEffect(() => {
+    if (page >= totalPages) {
+      return;
+    }
+
+    const nextPage = page + 1;
+
+    queryClient.prefetchQuery({
+      queryKey: ['comments', nextPage, COMMENTS_PER_PAGE],
+      queryFn: ({ signal }) =>
+        getComments(nextPage, COMMENTS_PER_PAGE, signal),
+    });
+  }, [page, queryClient, totalPages]);
 
   const startItem =
     comments.length === 0
@@ -34,7 +56,7 @@ function App() {
 
   const endItem = Math.min(
     page * COMMENTS_PER_PAGE,
-    TOTAL_COMMENTS,
+    totalComments,
   );
 
   return (
@@ -55,7 +77,7 @@ function App() {
 
           {comments.length > 0 && (
             <span className="comment-count">
-              {TOTAL_COMMENTS} comments
+              {totalComments} comments
             </span>
           )}
         </div>
@@ -78,7 +100,7 @@ function App() {
             <div className="comments-toolbar">
               <span className="comments-toolbar__info">
                 Showing {startItem}-{endItem} of{' '}
-                {TOTAL_COMMENTS} comments
+                {totalComments} comments
               </span>
 
               <Pagination
@@ -103,7 +125,7 @@ function App() {
             <div className="comments-toolbar">
               <span className="comments-toolbar__info">
                 Showing {startItem}-{endItem} of{' '}
-                {TOTAL_COMMENTS} comments
+                {totalComments} comments
               </span>
 
               <Pagination
