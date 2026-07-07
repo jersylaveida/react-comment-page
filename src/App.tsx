@@ -7,21 +7,35 @@ import { Pagination } from './components/Pagination';
 import { getComments } from './services/commentService';
 
 const COMMENTS_PER_PAGE = 50;
+const TOTAL_COMMENTS = 500;
 
 function App() {
   const [page, setPage] = useState(1);
 
-  const { data: comments = [], isLoading, isError, error } = useQuery({
-    queryKey: ['comments'],
-    queryFn: ({ signal }) => getComments(signal),
+  const {
+    data: comments = [],
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ['comments', page],
+    queryFn: ({ signal }) =>
+      getComments(page, COMMENTS_PER_PAGE, signal),
   });
 
-  const totalPages = Math.max(1, Math.ceil(comments.length / COMMENTS_PER_PAGE));
-  const startIndex = (page - 1) * COMMENTS_PER_PAGE;
-  const visibleComments = comments.slice(startIndex, startIndex + COMMENTS_PER_PAGE);
+  const totalPages = Math.ceil(
+    TOTAL_COMMENTS / COMMENTS_PER_PAGE,
+  );
 
-  const startItem = comments.length === 0 ? 0 : startIndex + 1;
-  const endItem = Math.min(page * COMMENTS_PER_PAGE, comments.length);
+  const startItem =
+    comments.length === 0
+      ? 0
+      : (page - 1) * COMMENTS_PER_PAGE + 1;
+
+  const endItem = Math.min(
+    page * COMMENTS_PER_PAGE,
+    TOTAL_COMMENTS,
+  );
 
   return (
     <>
@@ -41,16 +55,20 @@ function App() {
 
           {comments.length > 0 && (
             <span className="comment-count">
-              {comments.length}{' '}
-              {comments.length === 1 ? 'comment' : 'comments'}
+              {TOTAL_COMMENTS} comments
             </span>
           )}
         </div>
 
         {isLoading ? (
-          <div className="loading-state">Loading comments...</div>
+          <div className="loading-state">
+            Loading comments...
+          </div>
         ) : isError ? (
-          <div className="error-message" role="alert">
+          <div
+            className="error-message"
+            role="alert"
+          >
             {error instanceof Error
               ? error.message
               : 'Unable to load the comments.'}
@@ -59,18 +77,22 @@ function App() {
           <>
             <div className="comments-toolbar">
               <span className="comments-toolbar__info">
-                Showing {startItem}-{endItem} of {comments.length} comments
+                Showing {startItem}-{endItem} of{' '}
+                {TOTAL_COMMENTS} comments
               </span>
-              {totalPages > 1 && (
-                <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-              )}
+
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+              />
             </div>
 
             <section
               className="comments-list"
               aria-label="Comments list"
             >
-              {visibleComments.map((comment) => (
+              {comments.map((comment) => (
                 <CommentCard
                   key={comment.id}
                   comment={comment}
@@ -80,11 +102,15 @@ function App() {
 
             <div className="comments-toolbar">
               <span className="comments-toolbar__info">
-                Showing {startItem}-{endItem} of {comments.length} comments
+                Showing {startItem}-{endItem} of{' '}
+                {TOTAL_COMMENTS} comments
               </span>
-              {totalPages > 1 && (
-                <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
-              )}
+
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+              />
             </div>
           </>
         )}
